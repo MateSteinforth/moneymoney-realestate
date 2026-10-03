@@ -101,6 +101,16 @@ check("faktor scales value", a and b and math.abs(b[1].amount / a[1].amount - 1.
 local c = run("C | 17033 | efh | | 100000 | 2020-Q3 | afa=2")
 check("afa reduces value", a and c and c[1].amount < a[1].amount)
 
+-- Renovation lots: carried forward from their own date and added to the cost basis
+local r0 = run("R | 10115 | etw | 80 | 300000 | 2015")
+local r1 = run("R | 10115 | etw | 80 | 300000 | 2015 | sanierung=60.000@2019-06 + 20000@2026-Q2")
+local rr = run("R | 10115 | etw | 80 | 60000 | 2019-06")
+check("sanierung adds indexed lots", r0 and r1 and rr
+  and math.abs(r1[1].amount - (r0[1].amount + rr[1].amount + 20000)) < 0.01, r1 and tostring(r1[1].amount))
+check("sanierung in cost basis", r1 and math.abs(r1[1].purchasePrice * 80 - 380000) < 0.01)
+local rbad = run("R | 10115 | etw | 80 | 300000 | 2015 | sanierung=60000")
+check("rejects sanierung without date", rbad == nil)
+
 -- Explicit index override
 local o = run("O | 10115 | etw | 80 | 320000 | 2017 | index=de-kt4")
 check("index override", o and o[1].market:find("Dünn besiedelte", 1, true) ~= nil, o and o[1].market)

@@ -149,6 +149,21 @@ local function parseObject(spec, n)
     if not obj.adjust or obj.adjust <= 0 then fail("faktor ungültig (z.B. 1.05)") end
   end
   obj.currency = o.waehrung and o.waehrung:upper() or "EUR"
+
+  -- Capital improvements (renovation, modernisation): each amount is carried
+  -- forward with the index from its own date, like an additional purchase.
+  obj.lots = { { amount = obj.price, year = obj.year, quarter = obj.quarter } }
+  if o.sanierung then
+    for item in (o.sanierung .. "+"):gmatch("([^+]*)%+") do
+      local amount, date = trim(item):match("^(.-)%s*@%s*(.+)$")
+      local lot = { amount = amount and parseAmount(amount) }
+      if date then lot.year, lot.quarter = parseDate(date) end
+      if not lot.amount or lot.amount <= 0 or not lot.year then
+        fail("sanierung '" .. trim(item) .. "' ungültig (Format: Betrag@Datum, z.B. 80000@2018-06 + 20000@2021)")
+      end
+      obj.lots[#obj.lots + 1] = lot
+    end
+  end
   return obj
 end
 
@@ -192,8 +207,8 @@ local function seriesValue(s, qi)
   return s.v[qi - quarterIndex(s.start) + 1]
 end
 
--- Index level at purchase: the quarter, or the mean of the year if no quarter was given.
-local function purchaseLevel(s, obj)
+-- Index level at a date: the quarter, or the mean of the year if no quarter was given.
+local function indexLevel(s, obj)
   local first, last = quarterIndex(s.start), quarterIndex(s["end"])
   local quarters = {}
   if obj.quarter then
@@ -221,15 +236,20 @@ local function value(obj, indices, plzData)
   end
 
   local latest = quarterIndex(s["end"])
-  local buyLevel, note = purchaseLevel(s, obj)
   local nowLevel = seriesValue(s, latest)
-  local buyQi = obj.year * 4 + (obj.quarter or 2.5) - 1
-  local years = math.max(0, (latest - buyQi) / 4)
-
-  local total = obj.price * nowLevel / buyLevel * obj.adjust * (1 - obj.depreciation / 100) ^ years
+  local total, cost, note = 0, 0, nil
+  for _, lot in ipairs(obj.lots) do
+    local level, lotNote = indexLevel(s, lot)
+    local years = math.max(0, (latest - (lot.year * 4 + (lot.quarter or 2.5) - 1)) / 4)
+    total = total + lot.amount * nowLevel / level * (1 - obj.depreciation / 100) ^ years
+    cost = cost + lot.amount
+    note = note or lotNote
+  end
+  total = total * obj.adjust
   local areaInfo = indices.areas[area] or {}
   return {
     total = total,
+    cost = cost,
     latest = s["end"],
     label = areaInfo.label or area,
     note = note
@@ -300,7 +320,7 @@ function RefreshAccount(account, since)
       currency = obj.currency,
       quantity = qty,
       price = v.total / qty,
-      purchasePrice = obj.price / qty,
+      purchasePrice = v.cost / qty,
       amount = v.total,
       tradeTimestamp = timestamp(obj)
     }

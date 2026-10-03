@@ -15,7 +15,8 @@ value = purchase price × index(latest quarter) / index(purchase quarter)
 ```
 
 All the details of your property (location within the city, floor, layout,
-condition at purchase) are already priced into what you paid. The index then
+condition at purchase) are already priced into what you paid. Don't add
+a floor or location premium on top, because that would count it twice. The index then
 captures how that market has moved since.
 
 The extension picks an index from the postcode, most specific first:
@@ -33,7 +34,7 @@ national index. The source used for each object appears in the MoneyMoney
 "Börse/Markt" column.
 
 **Limits:** an index follows the market average, not your specific property. Use
-`afa` for building ageing and `faktor` for renovations. If you have a recent
+`afa` for building ageing, `sanierung` for renovations and `faktor` for anything else. If you have a recent
 professional valuation, you can also enter it in place of the purchase price,
 with its date.
 
@@ -72,7 +73,8 @@ Options:
 | Option | Meaning |
 |---|---|
 | `afa=1` | Annual ageing discount in percent (default 0). Index values reflect a constant quality level, so a building that has aged since purchase is worth a bit less than the index suggests. 0.5–1.5 is typical. |
-| `faktor=1.08` | Fixed multiplier, for example for value-adding renovations since purchase |
+| `sanierung=80000@2018-06` | Renovation or modernisation spending since purchase. Each amount is carried forward with the index from its own date and added to the purchase price for gain/loss. Join several with `+`: `sanierung=80000@2018 + 25000@2022-03` |
+| `faktor=1.08` | Fixed multiplier for any other value difference (better or worse than the market average) |
 | `index=de-kt2` | Force a specific index area (see `areas` in [`data/indices.json`](data/indices.json)) |
 | `waehrung=CHF` | Currency for objects outside the euro area |
 
