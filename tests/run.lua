@@ -111,6 +111,11 @@ check("sanierung in cost basis", r1 and math.abs(r1[1].purchasePrice * 80 - 3800
 local rbad = run("R | 10115 | etw | 80 | 300000 | 2015 | sanierung=60000")
 check("rejects sanierung without date", rbad == nil)
 
+-- Backlog deduction: subtracted from the value, not from the cost basis
+local d1 = run("D | 10115 | etw | 80 | 300000 | 2015 | abzug=75.000")
+check("abzug subtracts", r0 and d1 and math.abs(r0[1].amount - d1[1].amount - 75000) < 0.01)
+check("abzug keeps cost basis", d1 and d1[1].purchasePrice * 80 == 300000)
+
 -- Explicit index override
 local o = run("O | 10115 | etw | 80 | 320000 | 2017 | index=de-kt4")
 check("index override", o and o[1].market:find("Dünn besiedelte", 1, true) ~= nil, o and o[1].market)

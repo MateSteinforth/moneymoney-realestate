@@ -72,11 +72,25 @@ Options:
 
 | Option | Meaning |
 |---|---|
-| `afa=1` | Annual ageing discount in percent (default 0). Index values reflect a constant quality level, so a building that has aged since purchase is worth a bit less than the index suggests. 0.5–1.5 is typical. |
+| `afa=1` | Annual ageing discount in percent (default 0). Index values reflect a constant quality level, so a building that has aged since purchase is worth a bit less than the index suggests. See the guide below. |
 | `sanierung=80000@2018-06` | Renovation or modernisation spending since purchase. Each amount is carried forward with the index from its own date and added to the purchase price for gain/loss. Join several with `+`: `sanierung=80000@2018 + 25000@2022-03` |
+| `abzug=75000` | Known renovation backlog (Instandhaltungsstau), such as work a buyer would have to do. Deducted from today's value; not indexed |
 | `faktor=1.08` | Fixed multiplier for any other value difference (better or worse than the market average) |
 | `index=de-kt2` | Force a specific index area (see `areas` in [`data/indices.json`](data/indices.json)) |
 | `waehrung=CHF` | Currency for objects outside the euro area |
+
+**Choosing `afa` by build year.** The build year itself is already priced into
+the purchase price, so it is not a multiplier. What it changes is how fast the
+building loses value after purchase. Rules of thumb (not official figures):
+
+| Building | `afa` |
+|---|---|
+| Altbau (before 1919), renovated | 0–0.5 |
+| Post-war to 1990s | 0.5–1 |
+| New build bought new, or under ~15 years old at purchase | 1–1.5 |
+
+Renovations you enter with `sanierung` already offset part of the ageing, so
+lean towards the lower value when you use them.
 
 The **password** field is not used, but MoneyMoney requires a value, so enter
 anything. If the username field gets too long, you can put more objects in the

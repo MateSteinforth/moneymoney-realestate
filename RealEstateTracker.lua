@@ -149,6 +149,12 @@ local function parseObject(spec, n)
     if not obj.adjust or obj.adjust <= 0 then fail("faktor ungültig (z.B. 1.05)") end
   end
   obj.currency = o.waehrung and o.waehrung:upper() or "EUR"
+  -- Known renovation backlog (Instandhaltungsstau): deducted from today's value.
+  obj.deduction = 0
+  if o.abzug then
+    obj.deduction = parseAmount(o.abzug)
+    if not obj.deduction or obj.deduction < 0 then fail("abzug ungültig (Betrag, z.B. 75000)") end
+  end
 
   -- Capital improvements (renovation, modernisation): each amount is carried
   -- forward with the index from its own date, like an additional purchase.
@@ -245,7 +251,7 @@ local function value(obj, indices, plzData)
     cost = cost + lot.amount
     note = note or lotNote
   end
-  total = total * obj.adjust
+  total = total * obj.adjust - obj.deduction
   local areaInfo = indices.areas[area] or {}
   return {
     total = total,
