@@ -1,0 +1,8 @@
+.DS_Store
+__pycache__/
+.venv/
+venv/
+# Personal object lists for local testing — never commit
+*.local
+*.local.*
+private/
