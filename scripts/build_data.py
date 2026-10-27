@@ -23,6 +23,8 @@ import math
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 from collections import Counter, defaultdict
 
@@ -97,10 +99,18 @@ def log(*a):
     print(*a, file=sys.stderr)
 
 
-def fetch(url, timeout=300):
+def fetch(url, timeout=300, attempts=4):
     log("GET", url)
-    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as r:
-        return r.read()
+    for i in range(attempts):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as r:
+                return r.read()
+        except (urllib.error.URLError, TimeoutError) as e:
+            # Government sites occasionally return 5xx or time out; retry those, fail fast on 4xx.
+            if isinstance(e, urllib.error.HTTPError) and e.code < 500 or i == attempts - 1:
+                raise
+            log(f"  {e}; retrying in {30 * (i + 1)}s")
+            time.sleep(30 * (i + 1))
 
 
 def open_xlsx(blob):
