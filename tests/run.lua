@@ -70,12 +70,21 @@ end
 assert(SupportsBank(ProtocolWebBanking, "Immobilien (Preisindex)"))
 check("SupportsBank rejects others", not SupportsBank(ProtocolWebBanking, "Sparkasse"))
 
+-- Newest quarter the data has for an area, read from the "Stand YYYY-Qn" note. The tests below
+-- must not hard-code it: every data release moves it on (2026-Q3 broke two tests in CI).
+local function latest(plz)
+  local s = run("Stand | " .. plz .. " | etw | 50 | 100000 | 2020")
+  return s and s[1].market:match("Stand (%d%d%d%d%-Q%d)")
+end
+local qMunich, qBerlin = latest("80331"), latest("10115")
+check("latest quarter readable", qMunich ~= nil and qBerlin ~= nil)
+
 local secs, err = run(table.concat({
   "Beispielwohnung | 10115 | etw | 80 | 320.000 | 2017-05",
   "Beispielhaus | 49074 | haus | 140 | 280000 € | 2012",
   "Landhaus | 17033 | efh |  | 1,2 Mio | Q3/2020 | afa=1 | faktor=1,1",
   "Wien | AT | etw | 60 | 250000 | 15.03.2018",
-  "Neu | 80331 | etw | 50 | 500000 | 2026-Q2",
+  "Neu | 80331 | etw | 50 | 500000 | " .. tostring(qMunich),
 }, "; "))
 check("valid config parses", secs ~= nil, err)
 if secs then
@@ -103,7 +112,7 @@ check("afa reduces value", a and c and c[1].amount < a[1].amount)
 
 -- Renovation lots: carried forward from their own date and added to the cost basis
 local r0 = run("R | 10115 | etw | 80 | 300000 | 2015")
-local r1 = run("R | 10115 | etw | 80 | 300000 | 2015 | sanierung=60.000@2019-06 + 20000@2026-Q2")
+local r1 = run("R | 10115 | etw | 80 | 300000 | 2015 | sanierung=60.000@2019-06 + 20000@" .. tostring(qBerlin))
 local rr = run("R | 10115 | etw | 80 | 60000 | 2019-06")
 check("sanierung adds indexed lots", r0 and r1 and rr
   and math.abs(r1[1].amount - (r0[1].amount + rr[1].amount + 20000)) < 0.01, r1 and tostring(r1[1].amount))
